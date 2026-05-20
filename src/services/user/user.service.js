@@ -1,6 +1,8 @@
 // src/services/user/user.service.js
 const { UserProfile } = require('./user.model');
 const { Follow } = require('./follow.model');
+const { createNotification } = require('../notification/notification.service');
+const { emitToUser } = require('../../shared/socket');
 
 const getProfileByUsername = async (username) => {
   const profile = await UserProfile.findOne({ username }).select('-__v');
@@ -66,13 +68,28 @@ const followUser = async (followerId, followingId) => {
     throw err;
   }
 
-  await Follow.create({ follower: followerId, following: followingId, status });
+  const follow = await Follow.create({ follower: followerId, following: followingId, status });
 
   // Update counts only if accepted
   if (status === 'accepted') {
     await UserProfile.findByIdAndUpdate(followerId,   { $inc: { followingCount: 1 } });
     await UserProfile.findByIdAndUpdate(followingId,  { $inc: { followersCount: 1 } });
   }
+
+  await createNotification({
+    recipient: followingId,
+    sender: followerId,
+    type: status === 'pending' ? 'follow_request' : 'follow',
+    refModel: 'Follow',
+    refId: follow._id,
+    message: status === 'pending' ? 'sent you a follow request' : 'started following you',
+  });
+
+  emitToUser(followingId, 'follow:new', {
+    followerId,
+    followingId,
+    status,
+  });
 
   return { status };
 };

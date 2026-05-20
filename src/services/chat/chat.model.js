@@ -41,4 +41,17 @@ const validateMessage = (data) => {
   return schema.validate(data, { abortEarly: false });
 };
 
-module.exports = { Conversation, Message, validateMessage };
+const validateConversation = (data) => {
+  const schema = Joi.object({
+    participantIds: Joi.array().items(Joi.string().hex().length(24)).min(1).required(),
+    isGroup:        Joi.boolean().default(false),
+    groupName:      Joi.string().max(50).when('isGroup', {
+      is: true,
+      then: Joi.optional(),
+      otherwise: Joi.forbidden(),
+    }),
+  });
+  return schema.validate(data, { abortEarly: false });
+};
+
+module.exports = { Conversation, Message, validateMessage, validateConversation };

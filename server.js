@@ -1,14 +1,17 @@
 // server.js
+const http = require('http');
 const connectDB = require('./src/shared/configs/db');
 const app = require('./src/app');
-// const { connectDB } = require('./src/shared/config/db');
+const { initSocket } = require('./src/shared/socket');
 require('dotenv').config();
 
-const PORT = process.env.PORT 
+const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
 
 const start = async () => {
   await connectDB();
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+  initSocket(server);
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };
 
 start();
